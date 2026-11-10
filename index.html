@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Interactive Lesson: Stress</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 30px;
+    color: #2c3e50;
+    font-size: 22px;
+    line-height: 1.5;
+  }
+  h1 {
+    text-align: center;
+    color: white;
+    margin-bottom: 10px;
+    font-size: 2.8em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  .subtitle {
+    text-align: center;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 40px;
+    font-size: 1.3em;
+  }
+
+  /* Main menu */
+  .menu {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .card {
+    background: white;
+    border-radius: 18px;
+    padding: 40px 35px;
+    min-height: 240px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 6px;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+  }
+  .card:hover:not(.inactive) {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+  }
+  .card.inactive {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(60%);
+  }
+  .card.completed {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  }
+  .card.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 15px; right: 20px;
+    font-size: 2.2em;
+    color: #27ae60;
+    font-weight: bold;
+  }
+  .card h2 {
+    color: #2c3e50;
+    font-size: 1.6em;
+    margin-bottom: 12px;
+  }
+  .card .icon {
+    font-size: 3.2em;
+    margin-bottom: 10px;
+  }
+  .card p {
+    color: #555;
+    font-size: 1em;
+    line-height: 1.5;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .modal.active { display: flex; }
+  .modal-content {
+    background: white;
+    border-radius: 18px;
+    max-width: 1100px;
+    width: 100%;
+    padding: 40px;
+    position: relative;
+    animation: slideIn 0.3s ease;
+    margin: 20px auto;
+  }
+  @keyframes slideIn {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-content h2 {
+    color: #2c3e50;
+    margin-bottom: 25px;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 12px;
+    font-size: 1.8em;
+  }
+  .modal-content h3 {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+  }
+
+  /* Quiz */
+  .quiz-question {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .quiz-question h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.4em;
+  }
+  .quiz-option {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 12px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1em;
+  }
+  .quiz-option:hover { border-color: #3498db; background: #f0f7ff; }
+  .quiz-option.selected {
+    background: #d4edda;
+    border-color: #27ae60;
+  }
+  .quiz-option .points {
+    color: #c0392b;
+    font-weight: bold;
+    font-size: 0.95em;
+  }
+
+  .results-box {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+    padding: 20px 25px;
+    margin: 15px 0;
+    border-radius: 8px;
+    font-size: 1.1em;
+  }
+  .results-box strong { color: #d35400; }
+  .score-display {
+    text-align: center;
+    font-size: 2.2em;
+    color: #2c3e50;
+    margin: 20px 0;
+    font-weight: bold;
+  }
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 1.05em;
+  }
+  .breakdown-table th, .breakdown-table td {
+    border: 2px solid #bdc3c7;
+    padding: 12px 15px;
+    text-align: left;
+  }
+  .breakdown-table th {
+    background: #3498db;
+    color: white;
+  }
+  .breakdown-table tr:nth-child(even) { background: #f4f8fb; }
+  .your-result {
+    background: #d4edda;
+    border: 3px solid #27ae60;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    font-size: 1.15em;
+    text-align: center;
+  }
+
+  /* Pre-reading */
+  .statement-row {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin: 12px 0;
+    gap: 18px;
+    transition: all 0.3s;
+    font-size: 1.1em;
+  }
+  .statement-row .text {
+    flex: 1;
+  }
+  .choice-btn {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 2px solid #bdc3c7;
+    background: white;
+    cursor: pointer;
+    font-size: 1.5em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .choice-btn:hover { transform: scale(1.1); }
+  .choice-btn.true.selected { background: #27ae60; color: white; border-color: #27ae60; }
+  .choice-btn.false.selected { background: #e74c3c; color: white; border-color: #e74c3c; }
+  .statement-row.correct-answer { background: #d4edda; border-left: 6px solid #27ae60; }
+  .statement-row.wrong-answer { background: #f8d7da; border-left: 6px solid #e74c3c; }
+
+  /* Full text & headings */
+  .full-text-container {
+    background: #fffdf5;
+    border: 2px solid #f39c12;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+  }
+  .full-text-container h3 {
+    color: #d35400;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+  }
+  .text-paragraph {
+    background: white;
+    border-left: 5px solid #f39c12;
+    padding: 18px 20px;
+    margin: 15px 0;
+    border-radius: 8px;
+    font-size: 1.05em;
+    line-height: 1.7;
+    color: #333;
+  }
+  .heading-slot {
+    min-height: 55px;
+    background: #f0f7ff;
+    border: 2px dashed #3498db;
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    cursor: pointer;
+    font-size: 1em;
+    color: #7f8c8d;
+    font-style: italic;
+  }
+  .heading-slot:hover { background: #e3f0fc; }
+  .heading-slot.filled {
+    border-style: solid;
+    border-color: #3498db;
+    background: #d6eaf8;
+    color: #2c3e50;
+    font-weight: 600;
+    font-style: normal;
+  }
+  .heading-slot.correct { background: #d4edda; border-color: #27ae60; color: #155724; }
+  .heading-slot.wrong { background: #f8d7da; border-color: #e74c3c; color: #721c24; }
+
+  .heading-pool {
+    background: #e8f5e9;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    min-height: 80px;
+    border: 2px dashed #27ae60;
+  }
+  .heading-pool h4 {
+    color: #27ae60;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+  }
+  .draggable-heading {
+    display: inline-block;
+    background: white;
+    border: 2px solid #27ae60;
+    padding: 10px 18px;
+    margin: 6px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1em;
+    user-select: none;
+    transition: all 0.2s;
+  }
+  .draggable-heading:hover { background: #27ae60; color: white; transform: translateY(-2px); }
+  .draggable-heading.selected {
+    background: #27ae60;
+    color: white;
+    box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.3);
+    transform: scale(1.05);
+  }
+
+  /* T/F/NS */
+  .tfns-question {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .tfns-question .statement-text {
+    font-size: 1.25em;
+    margin-bottom: 25px;
+    line-height: 1.6;
+    color: #2c3e50;
+  }
+  .tfns-options {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  .tfns-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 18px;
+    border: 2px solid #bdc3c7;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .tfns-btn:hover { background: #f0f7ff; border-color: #3498db; }
+  .tfns-btn.correct { background: #27ae60; color: white; border-color: #27ae60; }
+  .tfns-btn.wrong { background: #e74c3c; color: white; border-color: #e74c3c; }
+  .tfns-btn.disabled { pointer-events: none; opacity: 0.6; }
+  .explanation {
+    margin-top: 20px;
+    padding: 18px;
+    background: #e8f5e9;
+    border-left: 5px solid #27ae60;
+    border-radius: 8px;
+    font-style: italic;
+    color: #2c3e50;
+    display: none;
+    font-size: 1.05em;
+  }
+  .explanation.show { display: block; animation: fadeIn 0.4s; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .progress-indicator {
+    text-align: center;
+    color: #7f8c8d;
+    margin-bottom: 15px;
+    font-size: 1em;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 14px 32px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: #3498db; color: white; }
+  .btn-primary:hover { background: #2980b9; transform: translateY(-2px); }
+  .btn-secondary { background: #95a5a6; color: white; }
+  .btn-secondary:hover { background: #7f8c8d; transform: translateY(-2px); }
+  .btn-next { background: #27ae60; color: white; }
+  .btn-next:hover { background: #229954; transform: translateY(-2px); }
+
+  .instruction {
+    background: #eaf2f8;
+    border-left: 5px solid #2980b9;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    color: #2c3e50;
+    font-size: 1.05em;
+  }
+
+  @media (max-width: 768px) {
+    .menu { grid-template-columns: 1fr; }
+    .modal-content { padding: 25px; }
+    body { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎯 Interactive Lesson: Stress</h1>
+<p class="subtitle">Spotlight 11 · Module 2 · Click on a task to begin</p>
+
+<div class="menu" id="menu">
+  <div class="card" data-task="quiz" onclick="openTask('quiz')">
+    <div>
+      <div class="icon">🧠</div>
+      <h2>1. Mini Stress Quiz</h2>
+      <p>Find out your stress level by answering 3 quick questions. Get your personalized result at the end.</p>
+    </div>
+  </div>
+
+  <div class="card" data-task="prereading" onclick="openTask('prereading')">
+    <div>
+      <div class="icon">📖</div>
+      <h2>2. Pre-reading Statements</h2>
+      <p>Read 5 statements about the text. Decide whether each is true or false — we'll check at the end of the lesson.</p>
+    </div>
+  </div>
+
+  <div class="card" data-task="fragments" onclick="openTask('fragments')">
+    <div>
+      <div class="icon">🧩</div>
+      <h2>3. Fragments & Headings</h2>
+      <p>Read the full text. Click a heading, then click a slot to place it. Match each paragraph with its main idea.</p>
+    </div>
+  </div>
+
+  <div class="card" data-task="tfns" onclick="openTask('tfns')">
+    <div>
+      <div class="icon">✅</div>
+      <h2>4. True / False / Not Stated</h2>
+      <p>Read 5 statements one by one. Choose True, False or Not Stated and see the explanation.</p>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ MODAL -->
+<div class="modal" id="modal-quiz">
+  <div class="modal-content">
+    <h2>🧠 Mini Stress Quiz</h2>
+    <div id="quiz-container"></div>
+  </div>
+</div>
+
+<!-- PRE-READING MODAL -->
+<div class="modal" id="modal-prereading">
+  <div class="modal-content">
+    <h2>📖 Pre-reading Statements</h2>
+    <div class="instruction">Choose ✓ (True) or ✗ (False) for each statement. Press <b>Check</b> to see the correct answers.</div>
+    <div id="prereading-container"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="backToMenu('prereading')">← Back</button>
+      <button class="btn btn-primary" onclick="checkPreReading()">Check</button>
+    </div>
+  </div>
+</div>
+
+<!-- FRAGMENTS MODAL -->
+<div class="modal" id="modal-fragments">
+  <div class="modal-content">
+    <h2>🧩 Fragments & Headings</h2>
+    <div class="instruction">
+      <b>How to work:</b> Read the full text below. Then <b>click a heading</b> from the pool to select it (it turns green), and <b>click a slot</b> next to a paragraph to place it there. To remove a heading, click it in its slot.
+    </div>
+    <div class="heading-pool" id="heading-pool">
+      <h4>📌 Available Headings (click to select):</h4>
+      <div id="headings-container"></div>
+    </div>
+    <div class="full-text-container">
+      <h3>📜 Stressed Out! — Full Text</h3>
+      <div id="paragraphs-container"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="backToMenu('fragments', true)">← Back</button>
+      <button class="btn btn-primary" onclick="checkFragments()">Check</button>
+    </div>
+  </div>
+</div>
+
+<!-- T/F/NS MODAL -->
+<div class="modal" id="modal-tfns">
+  <div class="modal-content">
+    <h2>✅ True / False / Not Stated</h2>
+    <div class="progress-indicator" id="tfns-progress">Statement 1 of 5</div>
+    <div id="tfns-container"></div>
+  </div>
+</div>
+
+<script>
+/* ============ DATA ============ */
+const quizData = [
+  {
+    q: "How often do you feel overwhelmed before a test?",
+    opts: [
+      { text: "Rarely, I stay calm.", points: 1 },
+      { text: "Sometimes, but I manage.", points: 2 },
+      { text: "Almost always, I panic.", points: 3 }
+    ]
+  },
+  {
+    q: "What is your usual reaction to a heavy workload?",
+    opts: [
+      { text: "I break it down into small tasks and make a plan.", points: 1 },
+      { text: "I ask friends or teachers for help.", points: 2 },
+      { text: "I procrastinate and then rush at the last minute.", points: 3 }
+    ]
+  },
+  {
+    q: "How do you usually relax after a hard day?",
+    opts: [
+      { text: "I sleep, go for a walk, or do my hobbies.", points: 1 },
+      { text: "I talk to someone about my problems.", points: 2 },
+      { text: "I scroll through social media for hours or eat junk food.", points: 3 }
+    ]
+  }
+];
+
+const preReadingData = [
+  { text: "Stress is always a negative experience.", answer: false, explain: "The text says: 'Not all stress is bad!'" },
+  { text: "92% of British teens feel stressed before exams.", answer: true, explain: "The text confirms: '92% of British teens feel stressed.'" },
+  { text: "The text suggests giving up all after-school activities forever.", answer: false, explain: "The text says 'for a while', not forever." },
+  { text: "'Grin and bear it' means you should complain loudly.", answer: false, explain: "It means to accept a situation without complaining." },
+  { text: "Writing poetry can be a way to cope with negative emotions.", answer: true, explain: "The text mentions writing poetry as a coping strategy." }
+];
+
+const fullTextParagraphs = [
+  {
+    id: 0,
+    text: "You're studying hard for your A-levels, you've got a part-time job, your parents are in the middle of a divorce and you're worried that your best friend is mad at you. Basically, you feel like you're losing control! Sound familiar? Well, you're not alone because 92% of British teens feel stressed. So, as the pressure mounts in the run-up to exams, we thought we'd give you the lowdown on what stress is and does and, most importantly, what we can do about it!",
+    correct: "You are not alone"
+  },
+  {
+    id: 1,
+    text: "The lowdown on stress. In a nutshell, 'stress' is the way our bodies and minds react to life's changes. Not all stress is bad!",
+    correct: "What is stress?"
+  },
+  {
+    id: 2,
+    text: "In stressful situations, the nervous system causes muscles to tense, breathing to become shallow and adrenaline to be released into your bloodstream as your body gets ready to meet challenges with focus and strength. So, a little stress can keep you on your toes!",
+    correct: "The positive side of stress"
+  },
+  {
+    id: 3,
+    text: "But, in the long term, it can put too much strain on your heart and cause other physical and emotional symptoms such as headaches, depression, forgetfulness and low self-esteem. The good news, however, is that you CAN deal with stress before it gets out of hand! So, take control and REMEMBER YOUR A-B-CS...",
+    correct: "Long-term dangers"
+  },
+  {
+    id: 4,
+    text: "A is for ACTION. You can take action when stress is created by something you can control. If you have too many things to do, for example, try to break tasks down into smaller 'chunks' and deal with one thing at a time in order of priority.",
+    correct: "Taking control"
+  },
+  {
+    id: 5,
+    text: "Perhaps it's just that you've taken on too much! If so, give up an after-school activity for a while, for example, or ask a friend or family member to help you lighten the load.",
+    correct: "Lightening the load"
+  },
+  {
+    id: 6,
+    text: "B is for BEAR IT. If there's nothing you can do, you'll just have to grin and bear it! At first, if you can't change your feelings, learn how to control your thoughts. When you feel overwhelmed, take slow, deep breaths and count to ten.",
+    correct: "Grin and bear it"
+  },
+  {
+    id: 7,
+    text: "Later, once you've calmed down, analyse the problem rationally. Perhaps you could repeat a saying to help you accept your situation... Also, try to keep things in perspective and don't be too dramatic! Saying that your workload 'is killing you' will only make you feel worse!",
+    correct: "Don't be dramatic"
+  },
+  {
+    id: 8,
+    text: "C is for COPE. Find ways to handle your stress! For a start, doing something relaxing, such as going for a walk or for a coffee with a friend, will help take your mind off the things that are bugging you.",
+    correct: "Handling stress"
+  },
+  {
+    id: 9,
+    text: "Or perhaps writing poetry or keeping a diary will help you to deal with your negative emotions. Last but not least, getting enough sleep, exercising and eating regular, nutritious meals are all essential for coping with stress! Above all, try to keep a sense of humour and a positive attitude! You don't have to let your problems rule your life!",
+    correct: "Don't let problems rule you"
+  }
+];
+
+const allHeadings = [
+  "You are not alone",
+  "What is stress?",
+  "The positive side of stress",
+  "Long-term dangers",
+  "Taking control",
+  "Lightening the load",
+  "Grin and bear it",
+  "Don't be dramatic",
+  "Handling stress",
+  "Don't let problems rule you"
+];
+
+const tfnsData = [
+  {
+    text: "Stress only has negative effects on the human body.",
+    answer: "False",
+    explain: "The text states: 'Not all stress is bad!' and explains that a little stress can keep you on your toes."
+  },
+  {
+    text: "The text recommends avoiding all after-school activities permanently to reduce stress.",
+    answer: "False",
+    explain: "The text suggests giving up an activity 'for a while', not permanently."
+  },
+  {
+    text: "92% of British teens feel stressed specifically because of their parents' divorce.",
+    answer: "Not Stated",
+    explain: "Divorce is only mentioned as one possible example among many causes of stress."
+  },
+  {
+    text: "Writing a diary can be an effective way to deal with negative emotions.",
+    answer: "True",
+    explain: "The text says: 'perhaps writing poetry or keeping a diary will help you to deal with your negative emotions.'"
+  },
+  {
+    text: "The author suggests that complaining dramatically about your workload is a good way to release tension.",
+    answer: "False",
+    explain: "The text says: 'Saying that your workload is killing you will only make you feel worse!'"
+  }
+];
+
+/* ============ STATE ============ */
+const state = {
+  quiz: { step: 0, score: 0, answers: [] },
+  prereading: { choices: [null, null, null, null, null], checked: false },
+  fragments: { assignments: {}, selectedHeading: null },
+  tfns: { current: 0, answered: [] }
+};
+
+const completed = { quiz: false, prereading: false, fragments: false, tfns: false };
+
+/* ============ MENU ============ */
+function openTask(task) {
+  if (completed[task]) return;
+  const card = document.querySelector(`.card[data-task="${task}"]`);
+  if (card.classList.contains('inactive')) return;
+
+  if (task === 'quiz') renderQuiz();
+  if (task === 'prereading') renderPreReading();
+  if (task === 'fragments') renderFragments();
+  if (task === 'tfns') renderTfns();
+
+  document.getElementById(`modal-${task}`).classList.add('active');
+}
+
+function closeModal(task) {
+  document.getElementById(`modal-${task}`).classList.remove('active');
+}
+
+function backToMenu(task, markInactive = false) {
+  closeModal(task);
+  if (markInactive) {
+    const card = document.querySelector(`.card[data-task="${task}"]`);
+    card.classList.add('inactive');
+  }
+}
+
+function markCompleted(task) {
+  completed[task] = true;
+  const card = document.querySelector(`.card[data-task="${task}"]`);
+  card.classList.add('completed', 'inactive');
+}
+
+/* ============ QUIZ ============ */
+function renderQuiz() {
+  const c = document.getElementById('quiz-container');
+  const { step, score } = state.quiz;
+
+  if (step < 3) {
+    const q = quizData[step];
+    let html = `<div class="progress-indicator">Question ${step + 1} of 3</div>`;
+    html += `<div class="quiz-question"><h3>${q.q}</h3>`;
+    q.opts.forEach((opt, i) => {
+      html += `<div class="quiz-option" onclick="selectQuizOption(${i}, ${opt.points})">
+        <span>${opt.text}</span>
+        <span class="points">${opt.points} pt${opt.points > 1 ? 's' : ''}</span>
+      </div>`;
+    });
+    html += `</div>`;
+    html += `<div class="btn-row"><button class="btn btn-secondary" onclick="backToMenu('quiz', true)">← Back</button></div>`;
+    c.innerHTML = html;
+  } else {
+    // Final results screen
+    let resultText = '';
+    let resultTitle = '';
+    if (score <= 4) {
+      resultTitle = "Stress Master";
+      resultText = "You handle pressure very well! You already use good coping strategies. Just keep it up and help your friends.";
+    } else if (score <= 7) {
+      resultTitle = "Balanced";
+      resultText = "You have normal stress levels, which is okay. Watch out for burnout. Try to use the 'A-B-C' strategies from today's text more often.";
+    } else {
+      resultTitle = "Stress Magnet";
+      resultText = "You are under too much pressure! It's time to take action. Pay close attention to the 'A is for Action' and 'C is for Cope' sections in our text today.";
+    }
+
+    let html = `
+      <div class="score-display">Your score: ${score} / 9</div>
+      <div class="your-result">
+        <strong style="font-size:1.3em;">Your result: ${resultTitle}</strong><br>
+        ${resultText}
+      </div>
+
+      <h3 style="margin-top:25px; color:#2c3e50;">📊 Points Breakdown</h3>
+      <table class="breakdown-table">
+        <tr><th>Answer option</th><th>Points</th></tr>
+        <tr><td>A) Rarely / Break it down / Sleep, walk, hobbies</td><td><b>1 point</b></td></tr>
+        <tr><td>B) Sometimes / Ask for help / Talk to someone</td><td><b>2 points</b></td></tr>
+        <tr><td>C) Almost always / Procrastinate / Social media & junk food</td><td><b>3 points</b></td></tr>
+      </table>
+
+      <h3 style="margin-top:25px; color:#2c3e50;">🎯 What the Scores Mean</h3>
+      <div class="results-box"><strong>3–4 points: Stress Master.</strong> You handle pressure very well and already use good coping strategies.</div>
+      <div class="results-box"><strong>5–7 points: Balanced.</strong> Normal stress levels. Watch out for burnout and use the A-B-C strategies.</div>
+      <div class="results-box"><strong>8–9 points: Stress Magnet.</strong> You are under too much pressure. It's time to take action!</div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="backToMenu('quiz', true)">← Back to Menu</button>
+      </div>
+    `;
+    c.innerHTML = html;
+  }
+}
+
+function selectQuizOption(idx, points) {
+  state.quiz.score += points;
+  state.quiz.step++;
+  renderQuiz();
+}
+
+/* ============ PRE-READING ============ */
+function renderPreReading() {
+  const c = document.getElementById('prereading-container');
+  let html = '';
+  preReadingData.forEach((item, i) => {
+    const trueSelected = state.prereading.choices[i] === true ? 'selected' : '';
+    const falseSelected = state.prereading.choices[i] === false ? 'selected' : '';
+    html += `
+      <div class="statement-row" id="pr-statement-${i}">
+        <div class="text">${i + 1}. ${item.text}</div>
+        <button class="choice-btn true ${trueSelected}" onclick="choosePreReading(${i}, true)">✓</button>
+        <button class="choice-btn false ${falseSelected}" onclick="choosePreReading(${i}, false)">✗</button>
+      </div>
+    `;
+  });
+  c.innerHTML = html;
+}
+
+function choosePreReading(i, val) {
+  state.prereading.choices[i] = val;
+  renderPreReading();
+}
+
+function checkPreReading() {
+  preReadingData.forEach((item, i) => {
+    const row = document.getElementById(`pr-statement-${i}`);
+    const userChoice = state.prereading.choices[i];
+    if (userChoice === item.answer) {
+      row.classList.add('correct-answer');
+    } else {
+      row.classList.add('wrong-answer');
+    }
+  });
+  state.prereading.checked = true;
+}
+
+/* ============ FRAGMENTS (full text + click-to-place) ============ */
+function renderFragments() {
+  // Render headings pool
+  const hc = document.getElementById('headings-container');
+  let hhtml = '';
+  allHeadings.forEach(h => {
+    const placed = Object.values(state.fragments.assignments).includes(h);
+    if (!placed) {
+      const selectedClass = state.fragments.selectedHeading === h ? 'selected' : '';
+      hhtml += `<span class="draggable-heading ${selectedClass}" onclick="selectHeading('${h.replace(/'/g, "\\'")}')">${h}</span>`;
+    }
+  });
+  if (!hhtml) hhtml = '<span style="color:#7f8c8d; font-style:italic;">All headings have been placed.</span>';
+  hc.innerHTML = hhtml;
+
+  // Render paragraphs with slots
+  const pc = document.getElementById('paragraphs-container');
+  let phtml = '';
+  fullTextParagraphs.forEach((para, i) => {
+    const assigned = state.fragments.assignments[i] || '';
+    const slotClass = assigned ? 'filled' : '';
+    const headingContent = assigned
+      ? `<span onclick="removeHeadingFromSlot(${i})" style="cursor:pointer;">${assigned} ✕</span>`
+      : 'Click a heading above, then click here to place it';
+    phtml += `
+      <div class="text-paragraph">
+        <div><b>Paragraph ${i + 1}.</b> ${para.text}</div>
+        <div class="heading-slot ${slotClass}" id="slot-${i}" onclick="placeHeadingInSlot(${i})">
+          ${headingContent}
+        </div>
+      </div>
+    `;
+  });
+  pc.innerHTML = phtml;
+}
+
+function selectHeading(heading) {
+  if (state.fragments.selectedHeading === heading) {
+    state.fragments.selectedHeading = null;
+  } else {
+    state.fragments.selectedHeading = heading;
+  }
+  renderFragments();
+}
+
+function placeHeadingInSlot(slotIndex) {
+  const selected = state.fragments.selectedHeading;
+  if (!selected) return;
+
+  // If slot already has a heading, return it to pool first
+  if (state.fragments.assignments[slotIndex]) {
+    delete state.fragments.assignments[slotIndex];
+  }
+  // Check if this heading is already in another slot — remove it
+  for (const key in state.fragments.assignments) {
+    if (state.fragments.assignments[key] === selected) {
+      delete state.fragments.assignments[key];
+    }
+  }
+  state.fragments.assignments[slotIndex] = selected;
+  state.fragments.selectedHeading = null;
+  renderFragments();
+}
+
+function removeHeadingFromSlot(slotIndex) {
+  delete state.fragments.assignments[slotIndex];
+  renderFragments();
+}
+
+function checkFragments() {
+  fullTextParagraphs.forEach((para, i) => {
+    const slot = document.getElementById(`slot-${i}`);
+    const assigned = state.fragments.assignments[i];
+    if (!assigned) return;
+    if (assigned === para.correct) {
+      slot.classList.add('correct');
+    } else {
+      slot.classList.add('wrong');
+    }
+  });
+}
+
+/* ============ T/F/NS ============ */
+function renderTfns() {
+  const c = document.getElementById('tfns-container');
+  const { current } = state.tfns;
+
+  if (current >= 5) {
+    c.innerHTML = `<div style="text-align:center; padding:30px;">
+      <h3 style="color:#27ae60; margin-bottom:15px; font-size:1.5em;">🎉 Well done!</h3>
+      <p style="color:#555; font-size:1.1em;">You've completed all 5 statements.</p>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn btn-secondary" onclick="backToMenu('tfns', true)">← Back to Menu</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  document.getElementById('tfns-progress').textContent = `Statement ${current + 1} of 5`;
+  const item = tfnsData[current];
+  const answered = state.tfns.answered[current];
+
+  let html = `<div class="tfns-question">
+    <div class="statement-text">${item.text}</div>
+    <div class="tfns-options">
+      <button class="tfns-btn ${answered === 'True' ? (item.answer === 'True' ? 'correct' : 'wrong') : ''} ${answered ? 'disabled' : ''}" onclick="answerTfns('True')">True</button>
+      <button class="tfns-btn ${answered === 'False' ? (item.answer === 'False' ? 'correct' : 'wrong') : ''} ${answered ? 'disabled' : ''}" onclick="answerTfns('False')">False</button>
+      <button class="tfns-btn ${answered === 'Not Stated' ? (item.answer === 'Not Stated' ? 'correct' : 'wrong') : ''} ${answered ? 'disabled' : ''}" onclick="answerTfns('Not Stated')">Not Stated</button>
+    </div>
+    <div class="explanation ${answered ? 'show' : ''}">
+      <strong>💡 ${answered ? (answered === item.answer ? 'Correct!' : `The correct answer is: ${item.answer}`) : ''}</strong><br>
+      ${item.explain}
+    </div>
+  </div>`;
+
+  if (answered) {
+    html += `<div class="btn-row"><button class="btn btn-next" onclick="nextTfns()">Next →</button></div>`;
+  }
+
+  c.innerHTML = html;
+}
+
+function answerTfns(val) {
+  const { current } = state.tfns;
+  if (state.tfns.answered[current]) return;
+  state.tfns.answered[current] = val;
+  renderTfns();
+}
+
+function nextTfns() {
+  state.tfns.current++;
+  if (state.tfns.current >= 5) {
+    markCompleted('tfns');
+    closeModal('tfns');
+  } else {
+    renderTfns();
+  }
+}
+</script>
+
+</body>
+</html>
